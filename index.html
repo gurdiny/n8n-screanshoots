@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Render n8n</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Render n8n</h1>
+      <p class="tagline">Convierte el JSON de un workflow en una imagen limpia para tus artículos. Todo se procesa en esta pestaña: el JSON no sale de tu navegador.</p>
+    </div>
+    <span class="badge-local">100% local</span>
+  </header>
+
+  <div class="grid">
+    <!-- ───────── Riel de control ───────── -->
+    <div class="rail">
+
+      <section class="card stack">
+        <h2>1 · Pega el workflow</h2>
+        <p class="note">En n8n: abre el flujo, <b>Ctrl+A</b> y <b>Ctrl+C</b>, y pega aquí. También sirve el archivo del botón <i>Download</i>.</p>
+        <textarea id="json" spellcheck="false" aria-label="JSON del workflow" placeholder='{"nodes":[…],"connections":{…}}'></textarea>
+        <div class="drop" id="drop">Arrastra aquí un archivo <b>.json</b></div>
+        <div class="btn-row">
+          <button class="btn primary" id="btnRender" type="button">Dibujar flujo</button>
+          <button class="btn" id="btnDemo" type="button">Cargar ejemplo</button>
+          <button class="btn" id="btnClear" type="button">Limpiar</button>
+        </div>
+        <p class="err" id="err" hidden></p>
+      </section>
+
+      <section class="card stack">
+        <h2>2 · Apariencia</h2>
+        <div class="fields">
+          <div>
+            <label class="label" for="theme">Estilo</label>
+            <select id="theme">
+              <option value="canvas">Lienzo n8n (claro)</option>
+              <option value="dark">Oscuro</option>
+              <option value="blueprint">Plano técnico</option>
+              <option value="paper">Papel limpio</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="preset">Formato</label>
+            <select id="preset">
+              <option value="fit">Ajustado al flujo</option>
+              <option value="1600x900">Blog 16:9 · 1600×900</option>
+              <option value="1200x630">Open Graph · 1200×630</option>
+              <option value="1080x1080">Cuadrado · 1080×1080</option>
+              <option value="1080x1350">Vertical 4:5 · 1080×1350</option>
+              <option value="custom">Personalizado…</option>
+            </select>
+          </div>
+          <div class="full size-row" id="customSize" hidden>
+            <div>
+              <label class="label" for="sizeW">Ancho (px)</label>
+              <input type="number" id="sizeW" min="300" max="8000" step="10" value="1600" inputmode="numeric">
+            </div>
+            <span class="size-x" aria-hidden="true">×</span>
+            <div>
+              <label class="label" for="sizeH">Alto (px)</label>
+              <input type="number" id="sizeH" min="300" max="8000" step="10" value="900" inputmode="numeric">
+            </div>
+            <button class="btn size-swap" id="sizeSwap" type="button" title="Intercambiar ancho y alto" aria-label="Intercambiar ancho y alto">⇄</button>
+          </div>
+          <div class="full">
+            <label class="label" for="layout">Acomodo</label>
+            <select id="layout">
+              <option value="auto">Ordenado · en filas si es largo</option>
+              <option value="line">Ordenado · en una sola fila</option>
+              <option value="n8n">Tal como está en n8n</option>
+            </select>
+          </div>
+          <div class="full">
+            <label class="label" for="icons">Iconos</label>
+            <select id="icons">
+              <option value="n8n">Como en n8n · logos oficiales a color</option>
+              <option value="badge">Insignia de color · todo sin conexión</option>
+            </select>
+          </div>
+          <div class="full">
+            <label class="label" for="title">Título sobre la imagen (opcional)</label>
+            <input type="text" id="title" placeholder="Automatización de publicación en WordPress">
+          </div>
+          <div class="full">
+            <label class="label" for="subtitle">Bajada (opcional)</label>
+            <input type="text" id="subtitle" placeholder="7 pasos · sin intervención manual">
+          </div>
+          <div class="full">
+            <label class="label" for="mark">Marca de agua</label>
+            <input type="text" id="mark" value="gerardourias.com">
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="optTypes"><span>Mostrar el tipo técnico bajo cada nodo<small>Útil para tutoriales; apágalo para imágenes de venta.</small></span></label>
+        <label class="check"><input type="checkbox" id="optStickies" checked><span>Incluir las notas adhesivas<small>Revísalas: suelen traer pendientes y credenciales anotadas.</small></span></label>
+      </section>
+
+      <section class="card stack">
+        <h2>3 · Privacidad</h2>
+        <label class="check"><input type="checkbox" id="optPrivate" checked><span>Modo privado<small>Enmascara correos, URLs, tokens e IDs largos en los nombres y las notas antes de dibujar.</small></span></label>
+        <div>
+          <span class="label">Qué revela este JSON</span>
+          <div class="scan" id="scan"><p class="note">Pega un workflow para revisarlo.</p></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ───────── Lienzo ───────── -->
+    <div class="stack">
+      <section class="card">
+        <div class="stage-head">
+          <h2 id="wfName">Vista previa</h2>
+          <div class="btn-row">
+            <button class="btn primary" id="btnPng" type="button">Descargar PNG 2×</button>
+            <button class="btn" id="btnPng3" type="button">PNG 3×</button>
+            <button class="btn" id="btnSvg" type="button">SVG</button>
+            <button class="btn" id="btnCopy" type="button">Copiar imagen</button>
+          </div>
+        </div>
+        <div class="stage" id="stage"><div class="stage-inner" id="stageInner"></div></div>
+        <div class="meta" id="meta"></div>
+      </section>
+
+      <section class="card stack">
+        <h2>Cómo se dibuja</h2>
+        <p class="note">La imagen se construye <b>solo</b> con tres datos del JSON: el nombre de cada nodo, su tipo y su posición en el lienzo, más las conexiones entre ellos. Los parámetros, las credenciales, los <i>webhookId</i> y los valores de prueba nunca llegan al dibujo, ni siquiera con el modo privado apagado.</p>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    El renderizado ocurre en tu navegador con los datos que pegas en esta pestaña. Nada se envía a un servidor; la descarga la confirmas tú. Si vas a usar un servicio externo para esto, primero mira el bloque de privacidad: ahí está exactamente lo que estarías entregando.
+  </footer>
+</div>
+
+<script src="js/icons.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
